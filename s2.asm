@@ -12026,8 +12026,14 @@ MenuScreen_Options:
 	move.l	#vdpComm(tiles_to_bytes($17A),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_BattleHUD).l,a0
 	bsr.w	NemDec
-	move.l	#vdpComm(tiles_to_bytes($193),VRAM,WRITE),(VDP_control_port).l
+	move.l	#vdpComm(tiles_to_bytes($197+2),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_RudinnBattle).l,a0
+	bsr.w	NemDec
+	move.l	#vdpComm(tiles_to_bytes($193),VRAM,WRITE),(VDP_control_port).l
+	lea	(ArtNem_battleBox).l,a0
+	bsr.w	NemDec
+	move.l	#vdpComm(tiles_to_bytes($197),VRAM,WRITE),(VDP_control_port).l
+	lea	(ArtNem_PlayerSoul).l,a0
 	bsr.w	NemDec
 	; Load foreground (sans zone icon)
 	lea	(Chunk_Table).l,a1
@@ -12104,12 +12110,30 @@ OptionScreen_Main:
 ;	move	#$2300,sr
 	lea	(Anim_DeltaruneBG).l,a2
 	jsrto	Dynamic_Normal, JmpTo2_Dynamic_Normal
-;	move.b	(Ctrl_1_Press).w,d0
-;	or.b	(Ctrl_2_Press).w,d0
-;	andi.b	#button_start_mask,d0
-;	bne.s	OptionScreen_Select
+	move.b	(Ctrl_1_Press).w,d0
+	or.b	(Ctrl_2_Press).w,d0
+	andi.b	#button_start_mask,d0
+	bne.s	BatelMenu_MakeBox;OptionScreen_Select
 	bra.w	OptionScreen_Main
 ; ===========================================================================
+BatelMenu_MakeBox:
+	lea	(Chunk_Table).l,a1
+	lea	(MapEng_battleBox).l,a0	; 2 bytes per 8x8 tile, compressed
+	move.w	#make_art_tile(ArtTile_VRAM_Start+$193,0,0),d0
+	bsr.w	EniDec
+	; ...and send it to VRAM.
+	lea	(Chunk_Table).l,a1
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,$F,5),VRAM,WRITE),d0
+	moveq	#9-1,d1 ; Width
+	moveq	#9-1,d2 ; Height
+	jsrto	PlaneMapToVRAM_H40, PlaneMapToVRAM_H40
+	move.b	#$DE,(HeartNumeroCinco).w
+;	lea	(Chunk_Table).l,a1
+;	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
+;	moveq	#9-1,d1
+;	moveq	#9-1,d2	; 40x28 = whole screen
+;	jsrto	PlaneMapToVRAM_H40, JmpTo_PlaneMapToVRAM_H40	; display patterns
+	bra.w	OptionScreen_Main
 ; loc_909A:
 OptionScreen_Select:
 	move.b	(Options_menu_box).w,d0
@@ -92413,6 +92437,15 @@ ArtUnc_DeltaBG:
 	even
 ArtNem_RudinnBattle:
 	binclude	"art/nemesis/rudinbatle.nem"
+	even
+ArtNem_battleBox:
+	binclude	"art/nemesis/deltarune battle box.nem"
+	even
+MapEng_battleBox:	BINCLUDE "mappings/misc/Battle box.eni"
+	even
+	include	"_incObj/DD Player Heart.asm"
+ArtNem_PlayerSoul:	BINCLUDE	"art/nemesis/playersoul.nem"
+	even
 ; end of 'ROM'
 	if padToPowerOfTwo && (*)&(*-1)
 		cnop	-1,2<<lastbit(*-1)

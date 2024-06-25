@@ -68,7 +68,7 @@ Plyer_PrsStart:	; Routine 2
 		move.w	#$FF+$7C,x_pos(a0)
 		move.w	#$D5,y_pixel(a0)
 		move.l	#Map_RudinnBattle,mappings(a0)
-		move.w	#$193,art_tile(a0)
+		move.w	#$197+2,art_tile(a0)
 		move.b	#3,anim(a0)
 		rts
 ;		lea	(Ani_Pleyers).l,a1

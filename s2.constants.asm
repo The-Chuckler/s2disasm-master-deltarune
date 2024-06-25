@@ -1831,6 +1831,7 @@ EnemyNumeroQuatro:
 IntroFlashingStar:
 TitleScreenPaletteChanger:
 				ds.b	object_size
+HeartNumeroCinco:
 TitleScreenPaletteChanger3:
 				ds.b	object_size
 IntroEmblemTop:
