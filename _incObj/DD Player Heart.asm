@@ -15,7 +15,7 @@ ObjDE:
 		move.w	#$F0+$20,x_pos(a0)
 		move.w	#$C5,y_pixel(a0)
 		move.l	#Map_Heart,mappings(a0)
-		move.w	#$197,art_tile(a0)
+		move.w	#$6197,art_tile(a0);$197 heart art vram loc
 		rts
 
 .Plyer_PrsStart:;code here heavily inspired by MDtravis
@@ -37,6 +37,23 @@ ObjDE:
 		beq.s	.DontMoveAtAll
 		addq.w	#1,x_pos(a0)
 .DontMoveAtAll:
+;		move.b	#0,(v_soulmoving).w
+		cmpi.w	#$AE,y_pixel(a0);A8,y_pixel(A0);$A8 is very close to the right size
+		bge.s	.chkD
+		move.w	#$AE,y_pixel(A0)
+	.chkD:
+		cmpi.w	#$EA,y_pixel(A0);$F8's a bit too big
+		ble.s	.chkR
+		move.w	#$EA,y_pixel(A0);sports
+	.chkR:
+		cmpi.w	#$FF+$3B,x_pos(A0)
+		ble.s	.chkL
+		move.w	#$FF+$3B,x_pos(A0)
+	.chkL:
+		cmpi.w	#$F6+$8,x_pos(A0)
+		bge.s	.allgood
+		move.w	#$F6+$8,x_pos(A0)
+	.allgood:
 		rts
 ;		jmp	(DeleteObject).l
 Map_Heart:
