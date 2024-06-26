@@ -2,8 +2,8 @@ ObjDD:
 		moveq	#0,d0
 		move.b	routine(a0),d0
 		move.w	Plyers_Index(pc,d0.w),d1
-		jsr	Plyers_Index(pc,d1.w)
-		jmp		DisplaySprite;bra.w	DisplaySprite
+		jmp	Plyers_Index(pc,d1.w)
+;		jmp		DisplaySprite;bra.w	DisplaySprite
 ; ===========================================================================
 Plyers_Index:	dc.w Plyer_Main-Plyers_Index
 		dc.w Plyer_PrsStart-Plyers_Index
@@ -32,7 +32,8 @@ Plyer_Main:	; Routine 0
 
 Plyer_Exit:	; Routine 4
 	lea	(Ani_Pleyers).l,a1
-	jmp	AnimateSprite
+	jsr	AnimateSprite
+	jmp		DisplaySprite
 ;		rts	
 ; ===========================================================================
 
@@ -68,7 +69,7 @@ Plyer_PrsStart:	; Routine 2
 		move.w	#$FF+$7C,x_pos(a0)
 		move.w	#$D5,y_pixel(a0)
 		move.l	#Map_RudinnBattle,mappings(a0)
-		move.w	#$197+2,art_tile(a0)
+		move.w	#heartbox_end+$1E,art_tile(a0);$197+1,art_tile(a0)
 		move.b	#3,anim(a0)
 		rts
 ;		lea	(Ani_Pleyers).l,a1

@@ -15,10 +15,12 @@ ObjDE:
 		move.w	#$F0+$20,x_pos(a0)
 		move.w	#$C5,y_pixel(a0)
 		move.l	#Map_Heart,mappings(a0)
-		move.w	#$6197,art_tile(a0);$197 heart art vram loc
+		move.w	#$6000+heartbox_end+1,art_tile(a0);$197 heart art vram loc
 		rts
 
 .Plyer_PrsStart:;code here heavily inspired by MDtravis
+		tst.b	(attack_started).w
+		beq.w	.DeleteHeart
 		moveq	#0,d0
 		move.b	(Ctrl_1).w,d0;(v_jpadhold1).w,d1
 		btst	#button_up,d0
@@ -54,7 +56,14 @@ ObjDE:
 		bge.s	.allgood
 		move.w	#$F6+$8,x_pos(A0)
 	.allgood:
+;		jsr		().l;JSR		_OBJECTCOLLIDE
+;		btst	#1, SOUL.INV(A0)
+;		bne.s	@noDisplay
+;		JMP		_OBJECTDISPLAY
+;	@noDisplay:
+;		rts
 		rts
-;		jmp	(DeleteObject).l
+.DeleteHeart:
+		jmp	(DeleteObject).l
 Map_Heart:
 		include	"mappings/sprite/Player heart.asm"

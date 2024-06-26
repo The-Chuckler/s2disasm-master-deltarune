@@ -242,6 +242,7 @@ ObjPtr_ContinueChars:	dc.l ObjDB	; Sonic lying down or Tails nagging (continue s
 ObjPtr_RingPrize:	dc.l ObjDC	; Ring prize from Casino Night Zone
 		dc.l ObjDD
 		dc.l ObjDE
+		dc.l ObjDF
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
 ; Object 4C, 4D, 4E, 4F, 62, D0, and D1

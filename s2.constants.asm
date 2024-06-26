@@ -1729,17 +1729,21 @@ LevSel_HoldTimer:		ds.w	1
 Level_select_zone:		ds.w	1
 Sound_test_sound:		ds.w	1
 Title_screen_option:		ds.b	1
+DR_battle_option:
 				ds.b	1	; $FFFFFF87 ; unused
 Current_Zone_2P:		ds.b	1
 Current_Act_2P:			ds.b	1
 Two_player_mode_copy:		ds.w	1
 Options_menu_box:		ds.b	1
+attack_started:
 				ds.b	1	; $FFFFFF8D ; unused
 Total_Bonus_Countdown:		ds.w	1
 				
 Level_Music:			ds.w	1
 Bonus_Countdown_3:		ds.w	1
-				ds.b	4	; $FFFFFF94-$FFFFFF97 ; seems unused
+Members_done_selectoptions:
+				ds.b	1;4	; $FFFFFF94-$FFFFFF97 ; seems unused; this used
+				ds.b	3;unused
 Game_Over_2P:			ds.w	1
 
 				ds.b	6	; $FFFFFF9A-$FFFFFF9F ; seems unused
@@ -1834,6 +1838,7 @@ TitleScreenPaletteChanger:
 HeartNumeroCinco:
 TitleScreenPaletteChanger3:
 				ds.b	object_size
+BattleOptsNumeroSes:
 IntroEmblemTop:
 				ds.b	object_size
 IntroMaskingSprite:

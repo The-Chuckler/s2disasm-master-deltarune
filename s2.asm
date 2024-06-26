@@ -24,14 +24,14 @@ gameRevision = 1
 padToPowerOfTwo = 1
 ;	| If 1, pads the end of the ROM to the next power of two bytes (for real hardware)
 ;
-fixBugs = 0
+fixBugs = 1;0
 ;	| If 1, enables all bug-fixes
 ;	| See also the 'FixDriverBugs' flag in 's2.sounddriver.asm'
 ;	| See also the 'FixMusicAndSFXDataBugs' flag in 'build.lua'
-allOptimizations = 0
+allOptimizations = 1;0
 ;	| If 1, enables all optimizations
 ;
-skipChecksumCheck = 0
+skipChecksumCheck = 1;0
 ;	| If 1, disables the slow bootup checksum calculation
 ;
 zeroOffsetOptimization = 0|allOptimizations
@@ -1112,10 +1112,10 @@ Vint_Menu:
 	startZ80
 
 	bsr.w	ProcessDPLC
-	tst.w	(Demo_Time_left).w
-	beq.w	+	; rts
-	subq.w	#1,(Demo_Time_left).w
-+
+;	tst.w	(Demo_Time_left).w
+;	beq.w	+	; rts
+;	subq.w	#1,(Demo_Time_left).w
+;+
 	rts
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
@@ -4046,9 +4046,9 @@ SegaScreen:
 	; This gets overwritten by the upscaled Sonic sprite. This may have
 	; been used to test the Sega screen before the sprite upscaling logic
 	; was added.
-	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtUnc_Giant_Sonic),VRAM,WRITE),(VDP_control_port).l
-	lea	(ArtNem_SilverSonic).l,a0
-	bsr.w	NemDec
+;	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtUnc_Giant_Sonic),VRAM,WRITE),(VDP_control_port).l
+;	lea	(ArtNem_SilverSonic).l,a0
+;	bsr.w	NemDec
 
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_SEGA).l,a0
@@ -4118,7 +4118,7 @@ Sega_WaitEnd:
 Sega_GotoTitle:
 	clr.w	(SegaScr_PalDone_Flag).w
 	clr.w	(SegaScr_VInt_Subrout).w
-	move.b	#GameModeID_TitleScreen,(Game_Mode).w	; => TitleScreen
+	move.b	#GameModeID_OptionsMenu,(Game_Mode).w;GameModeID_TitleScreen,(Game_Mode).w	; => TitleScreen
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -12018,6 +12018,8 @@ MenuScreenTextToRAM:
 ; End of function MenuScreenTextToRAM
 
 ; ===========================================================================
+bigplanemap_art_end	=	$192;6
+heartbox_end	=	bigplanemap_art_end+4+$19
 ; loc_8FCC:
 MenuScreen_Options:
 	move.l	#vdpComm(tiles_to_bytes($68),VRAM,WRITE),(VDP_control_port).l
@@ -12026,14 +12028,17 @@ MenuScreen_Options:
 	move.l	#vdpComm(tiles_to_bytes($17A),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_BattleHUD).l,a0
 	bsr.w	NemDec
-	move.l	#vdpComm(tiles_to_bytes($197+2),VRAM,WRITE),(VDP_control_port).l
+	move.l	#vdpComm(tiles_to_bytes(heartbox_end+$1E),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_RudinnBattle).l,a0
 	bsr.w	NemDec
-	move.l	#vdpComm(tiles_to_bytes($193),VRAM,WRITE),(VDP_control_port).l
+	move.l	#vdpComm(tiles_to_bytes(bigplanemap_art_end+1),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_battleBox).l,a0
 	bsr.w	NemDec
-	move.l	#vdpComm(tiles_to_bytes($197),VRAM,WRITE),(VDP_control_port).l
+	move.l	#vdpComm(tiles_to_bytes(heartbox_end+1),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_PlayerSoul).l,a0
+	bsr.w	NemDec
+	move.l	#vdpComm(tiles_to_bytes(heartbox_end+2),VRAM,WRITE),(VDP_control_port).l
+	lea	(ArtNem_BattleButtons).l,a0
 	bsr.w	NemDec
 	; Load foreground (sans zone icon)
 	lea	(Chunk_Table).l,a1
@@ -12084,11 +12089,13 @@ MenuScreen_Options:
 	move.b	#4,(SusieNumeroTres+subtype).w
 	move.b	#$DD,(EnemyNumeroQuatro).w
 	move.b	#6,(EnemyNumeroQuatro+subtype).w
+	move.b	#$DF,(BattleOptsNumeroSes).w
+	move.w	#$AD,(BattleOptsNumeroSes+x_pos).w
 ;	move.b	#2,(IntroSonic+subtype).w
 
 	; Run it for a frame, so that it initialises.
-	jsr	(RunObjects).l
-	jsr	(BuildSprites).l
+;	jsr	(RunObjects).l
+;	jsr	(BuildSprites).l
 	move.b	#VintID_Menu,(Vint_routine).w
 	bsr.w	WaitForVint
 	move.w	(VDP_Reg1_val).w,d0
@@ -12110,13 +12117,43 @@ OptionScreen_Main:
 ;	move	#$2300,sr
 	lea	(Anim_DeltaruneBG).l,a2
 	jsrto	Dynamic_Normal, JmpTo2_Dynamic_Normal
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	andi.b	#button_start_mask,d0
-	bne.s	BatelMenu_MakeBox;OptionScreen_Select
+	tst.b	(attack_started).w
+	beq.s	+
+	;sub.b	#1,(Demo_Time_left).w
+	tst.w	(Demo_Time_left).w
+	beq.s	+++	; rts
+	subq.w	#1,(Demo_Time_left).w
+	bra.s	OptionScreen_Main
++
+	tst.b	(Members_done_selectoptions).w
+	bne.s	+
+	bra.s	OptionScreen_Main
++
+;	move.b	(Ctrl_1_Press).w,d0
+;	or.b	(Ctrl_2_Press).w,d0
+;	andi.b	#button_A_mask,d0;button_start_mask,d0
+;	bne.s	BatelMenu_MakeBox;OptionScreen_Select
+	bra.w	BatelMenu_MakeBox;OptionScreen_Main
++
+	move.b	#0,(attack_started).w
+	move.b	#0,(Members_done_selectoptions).w
+	move.w	#$AD,(BattleOptsNumeroSes+x_pos).w
+	move.b	#0,(BattleOptsNumeroSes+y_pos).w
+	lea	(Chunk_Table).l,a1
+	lea	(MapEng_DRbhud).l,a0	; 2 bytes per 8x8 tile, compressed
+	move.w	#make_art_tile(ArtTile_VRAM_Start+$17A,0,0),d0
+	bsr.w	EniDec
+	lea	(Chunk_Table).l,a1
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
+	moveq	#40-1,d1
+	moveq	#28-1,d2	; 40x28 = whole screen
+	jsrto	PlaneMapToVRAM_H40, JmpTo_PlaneMapToVRAM_H40
 	bra.w	OptionScreen_Main
+;	rts
 ; ===========================================================================
 BatelMenu_MakeBox:
+	move.b	#1,(attack_started).w
+	move.w	#(30*60)-1,(Demo_Time_left).w;30 secs
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_battleBox).l,a0	; 2 bytes per 8x8 tile, compressed
 	move.w	#make_art_tile(ArtTile_VRAM_Start+$193,0,0),d0
@@ -92446,6 +92483,10 @@ MapEng_battleBox:	BINCLUDE "mappings/misc/Battle box.eni"
 	include	"_incObj/DD Player Heart.asm"
 ArtNem_PlayerSoul:	BINCLUDE	"art/nemesis/playersoul.nem"
 	even
+ArtNem_BattleButtons:
+	binclude	"art/nemesis/btnDRbtl.nem"
+	even
+	include	"_incObj/DF pressable buttons in DR battle.asm"
 ; end of 'ROM'
 	if padToPowerOfTwo && (*)&(*-1)
 		cnop	-1,2<<lastbit(*-1)
