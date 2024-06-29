@@ -3798,7 +3798,6 @@ music_metadata macro bank,pal,uncompressed,label
 	db	(bank<<7)|(pal<<6)|(uncompressed<<5)|((label-.base)/2)
     endm
 
-zMusIDPtr_2PResult:	music_metadata 1,0,0,MusPtr_2PResult
 zMusIDPtr_EHZ:		music_metadata 1,0,0,MusPtr_EHZ
 zMusIDPtr_MCZ_2P:	music_metadata 1,0,0,MusPtr_MCZ_2P
 zMusIDPtr_OOZ:		music_metadata 1,0,0,MusPtr_OOZ
@@ -3826,6 +3825,7 @@ zMusIDPtr_Title:	music_metadata 1,0,0,MusPtr_Title
 zMusIDPtr_EndLevel:	music_metadata 1,0,0,MusPtr_EndLevel
 zMusIDPtr_GameOver:	music_metadata 1,0,1,MusPtr_GameOver
 zMusIDPtr_Continue:	music_metadata 0,0,0,MusPtr_Continue
+zMusIDPtr_2PResult:	music_metadata 0,0,1,MusPtr_2PResult
 zMusIDPtr_Emerald:	music_metadata 1,0,1,MusPtr_Emerald
 zMusIDPtr_Credits:	music_metadata 1,0,1,MusPtr_Credits
 zMusIDPtr_Countdown:	music_metadata 1,1,0,MusPtr_Drowning

@@ -243,6 +243,8 @@ ObjPtr_RingPrize:	dc.l ObjDC	; Ring prize from Casino Night Zone
 		dc.l ObjDD
 		dc.l ObjDE
 		dc.l ObjDF
+		dc.l ObjF0
+;		dc.l ObjF1
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
 ; Object 4C, 4D, 4E, 4F, 62, D0, and D1

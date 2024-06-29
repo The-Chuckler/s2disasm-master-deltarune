@@ -14,6 +14,15 @@ ObjDE:
 		addq.b	#2,routine(a0)
 		move.w	#$F0+$20,x_pos(a0)
 		move.w	#$C5,y_pixel(a0)
+		MOVE.B	#4,			y_radius(A0);y size
+		MOVE.B	#4,			x_radius(A0);x size
+;		move.b	#$8,y_radius(a0) ; this sets Tails' collision height (2*pixels) to less than Sonic's height
+;	move.b	#8,x_radius(a0)
+;	move.b	$4,width_pixels(a0)
+;		move.b	$4,height_pixels(a0)
+;	move.l	#MapUnc_Tails,mappings(a0)
+	move.b	#0,priority(a0)
+;	move.b	#$8,width_pixels(a0)
 		move.l	#Map_Heart,mappings(a0)
 		move.w	#$6000+heartbox_end+1,art_tile(a0);$197 heart art vram loc
 		rts
@@ -56,6 +65,7 @@ ObjDE:
 		bge.s	.allgood
 		move.w	#$F6+$8,x_pos(A0)
 	.allgood:
+	jsr	(TouchResponse).l;ill deal with collision later
 ;		jsr		().l;JSR		_OBJECTCOLLIDE
 ;		btst	#1, SOUL.INV(A0)
 ;		bne.s	@noDisplay

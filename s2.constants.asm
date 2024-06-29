@@ -392,6 +392,7 @@ GameModeID_2PLevelSelect =	id(GameMode_2PLevelSelect) ; 1C
 GameModeID_EndingSequence =	id(GameMode_EndingSequence) ; 20
 GameModeID_OptionsMenu =	id(GameMode_OptionsMenu) ; 24
 GameModeID_LevelSelect =	id(GameMode_LevelSelect) ; 28
+GameModeID_CreditsScreen =	id(GameMode_Credits) ; 28
 GameModeFlag_TitleCard =	7 ; flag bit
 GameModeID_TitleCard =		1<<GameModeFlag_TitleCard ; flag mask
 
@@ -830,6 +831,7 @@ SndID_EnterGiantRing =	id(SndPtr_EnterGiantRing)	; C3
 SndID_BossExplosion =	id(SndPtr_BossExplosion)	; C4
 SndID_TallyEnd =	id(SndPtr_TallyEnd)		; C5
 SndID_RingSpill =	id(SndPtr_RingSpill)		; C6
+SndID_Selectthing =	id(SndPtr_selectthing)		; C8
 SndID_Flamethrower =	id(SndPtr_Flamethrower)		; C8
 SndID_Bonus =		id(SndPtr_Bonus)		; C9
 SndID_SpecStageEntry =	id(SndPtr_SpecStageEntry)	; CA
@@ -1146,7 +1148,14 @@ Block_Crossed_Flags_End:
 Block_Crossed_Flags_P2:
 Horiz_block_crossed_flag_P2:	ds.b	1	; toggles between 0 and $10 when you cross a block boundary horizontally
 Verti_block_crossed_flag_P2:	ds.b	1	; toggles between 0 and $10 when you cross a block boundary vertically
-				ds.b	6	; $FFFFEE4A-$FFFFEE4F ; seems unused
+kris_helth_current:
+				ds.b	1;6	; $FFFFEE4A-$FFFFEE4F ; seems unused
+ralsei_helth_current:
+				ds.b	1
+susie_helth_current:
+				ds.w	1;uses a word bc 120 helth, others max 90
+toilet_paper_current:
+				ds.b	2;unused for now
 Block_Crossed_Flags_P2_End:
 
 Scroll_Flags_All:
@@ -1242,7 +1251,10 @@ Camera_BG_X_offset:		ds.w	1	; Used to control background scrolling in X in WFZ e
 Camera_BG_Y_offset:		ds.w	1	; Used to control background scrolling in Y in WFZ ending and HTZ screen shake
 HTZ_Terrain_Delay:		ds.w	1	; During HTZ screen shake, this is a delay between rising and sinking terrain during which there is no shaking
 HTZ_Terrain_Direction:		ds.b	1	; During HTZ screen shake, 0 if terrain/lava is rising, 1 if lowering
-				ds.b	3	; $FFFFEEE9-$FFFFEEEB ; seems unused
+		ds.b	1
+TIMER:
+				ds.w	1;2;3	; $FFFFEEE9-$FFFFEEEB ; seems unused
+;				ds.b	1
 Vscroll_Factor_P2_HInt:		ds.l	1
 Camera_X_pos_copy:		ds.l	1
 Camera_Y_pos_copy:		ds.l	1
@@ -1841,10 +1853,13 @@ TitleScreenPaletteChanger3:
 BattleOptsNumeroSes:
 IntroEmblemTop:
 				ds.b	object_size
+EnemyAttackInitNumeroSepte:
 IntroMaskingSprite:
 				ds.b	object_size
+;EnemyAttack2ndNumeroOcto:
 IntroSonicHand:
 				ds.b	object_size
+BattleTxtNumeroHuit:
 IntroTailsHand:
 				ds.b	object_size
 TitleScreenPaletteChanger2:

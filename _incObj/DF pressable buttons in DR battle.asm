@@ -19,7 +19,7 @@ ObjDF:
 	move.w	#$FF+$35,y_pixel(a0);128+224/2+92,y_pixel(a0)
 	move.l	#Map_DRbattleoptions,mappings(a0)
 	move.w	#$6000+heartbox_end+2,art_tile(a0);198,art_tile(a0);make_art_tile(ArtTile_VRAM_Start,0,0),art_tile(a0)
-	jsr	(Adjust2PArtPointer).l;bsr.w	Adjust2PArtPointer
+;	jsr	(Adjust2PArtPointer).l;bsr.w	Adjust2PArtPointer
 ;	andi.b	#1,(DR_battle_option).w
 ;	move.b	(DR_battle_option).w,mapping_frame(a0)
 	
@@ -48,7 +48,7 @@ ObjDF:
 	move.b	d2,(DR_battle_option).w
 	andi.b	#button_left_mask|button_right_mask,d0;button_up_mask|button_down_mask,d0
 	beq.s	+	; rts
-	moveq	#signextendB(SndID_Blip),d0 ; selection blip sound
+	moveq	#signextendB(SndID_Bonus),d0 ; selection blip sound
 	jsrto	PlaySound, JmpTo4_PlaySound
 +
 	move.b	(Ctrl_1_Press).w,d0
@@ -57,11 +57,14 @@ ObjDF:
 	bne.s	+;BatelMenu_MakeBox
 	jmp		DisplaySprite
 +
+	moveq	#signextendB(SndID_Selectthing),d0 ; selection blip sound
+	jsrto	PlaySound, JmpTo4_PlaySound
 	tst.b	y_pos(a0)
 	bne.s	+
 	add.w	#$70,x_pos(a0)
 	move.b	(DR_battle_option).w,subtype(a0);().w; you'll see why in a sec
 	move.b	#1,y_pos(a0);this is actually not used in this object which means i can use it as a temporary ram adress. Yippee!!!
+	move.b	#0,(DR_battle_option).w
 ;+
 	jmp		DisplaySprite
 +	
@@ -70,6 +73,7 @@ ObjDF:
 ;	move.b	#1,(Members_done_selectoptions).w
 	move.b	#2,y_pos(a0)
 	add.w	#$69,x_pos(a0);nice
+	move.b	#0,(DR_battle_option).w
 ;	move.b	(DR_battle_option).w,subtype(a0)
 	jmp		DisplaySprite
 +

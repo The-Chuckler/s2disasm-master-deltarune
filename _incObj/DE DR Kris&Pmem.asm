@@ -1,3 +1,4 @@
+	even
 ObjDD:
 		moveq	#0,d0
 		move.b	routine(a0),d0
@@ -12,8 +13,8 @@ Plyers_Index:	dc.w Plyer_Main-Plyers_Index
 
 Plyer_Main:	; Routine 0
 		addq.b	#2,routine(a0)
-		move.w	#$C0,x_pos(a0)
-		move.w	#$95,y_pixel(a0)
+		move.w	#$C7,x_pos(a0)
+		move.w	#$A0,y_pixel(a0)
 		move.l	#Map_Pleyers,mappings(a0)
 		move.w	#$68,art_tile(a0)
 ;		tst.b	subtype(a0)
@@ -55,14 +56,14 @@ Plyer_PrsStart:	; Routine 2
 ;		jmp	AnimateSprite;bra.w	AnimateSprite	; "PRESS START" is animated
 .RalseiAnim:
 		move.w	#$C0,x_pos(a0)
-		move.w	#$D0,y_pixel(a0);kris y pos +$40
+		move.w	#$C0+$40,y_pixel(a0);D0,y_pixel(a0);kris y pos +$40
 		move.b	#1,anim(a0)
 		rts
 ;		lea	(Ani_Pleyers).l,a1
 ;		jmp	AnimateSprite
 .SusieAnim:
 		move.w	#$C0,x_pos(a0)
-		move.w	#$C0+$40,y_pixel(a0);kris y pos +$40
+		move.w	#$D0,y_pixel(a0);C0+$40,y_pixel(a0);kris y pos +$40
 		move.b	#2,anim(a0)
 		rts
 .EnemyCode:
@@ -102,11 +103,11 @@ Ani_Pleyers:	dc.w .flash-Ani_Pleyers
 		dc.w .relsai-Ani_Pleyers
 		dc.w sussyAnim-Ani_Pleyers
 		dc.w	Ruddinanim-Ani_Pleyers
-.flash:		dc.b $10, 0, 1, 2, 3, 4, 5,	afEnd
+.flash:		dc.b $D, 0, 1, 2, 3, 4, 5,	afEnd
 		even
-.relsai:	dc.b $10, 6, 7, 8, 9, $A,	afEnd
+.relsai:	dc.b $E, 6, 7, 8, 9, $A,	afEnd
 		even
-sussyAnim:		dc.b $10, $B, $C, $D, $E,	afEnd
+sussyAnim:		dc.b $13, $B, $C, $D, $E,	afEnd
 		even
-Ruddinanim:	dc.b $10, 0, 1, 2, 3,	afEnd
+Ruddinanim:	dc.b $15, 3, 2, 1, 0,	afEnd
 		even

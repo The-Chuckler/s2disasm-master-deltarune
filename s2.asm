@@ -431,6 +431,7 @@ GameMode_2PLevelSelect:	bra.w	LevelSelectMenu2P	; 2P level select mode
 GameMode_EndingSequence:bra.w	JmpTo_EndingSequence	; End sequence mode
 GameMode_OptionsMenu:	bra.w	OptionsMenu		; Options mode
 GameMode_LevelSelect:	bra.w	LevelSelectMenu		; Level select mode
+GameMode_Credits:		jmp	CreditsScreen
 ; ===========================================================================
     if skipChecksumCheck=0	; checksum error code
 ; loc_3CE:
@@ -667,7 +668,26 @@ Vint_Title:
 ;VintSub6
 Vint_Unused6:
 	bsr.w	Do_ControllerPal
+;	stopZ80
+;
+;	bsr.w	ReadJoypads
+
+;	dma68kToVDP Normal_palette,$0000,palette_line_size*4,CRAM
+;	dma68kToVDP Sprite_Table,VRAM_Sprite_Attribute_Table,VRAM_Sprite_Attribute_Table_Size,VRAM
+;	dma68kToVDP Horiz_Scroll_Buf,VRAM_Horiz_Scroll_Table,VRAM_Horiz_Scroll_Table_Size,VRAM
+
+;	bsr.w	ProcessDMAQueue
+;	bsr.w	sndDriverInput
+
+;	startZ80
+
+;	bsr.w	ProcessDPLC
+	tst.w	(Demo_Time_left).w
+	beq.w	+	; rts
+	subq.w	#1,(Demo_Time_left).w
++
 	rts
+;	rts
 ; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ;VintSub10
 Vint_Pause:
@@ -1096,6 +1116,7 @@ off_D3C:	offsetTable
 	jsrto	PlaneMapToVRAM_H40, PlaneMapToVRAM_H40
 	rts
 ; ===========================================================================
+VDPDATA	=	VDP_data_port
 ;VintSub16
 Vint_Menu:
 	stopZ80
@@ -1112,6 +1133,21 @@ Vint_Menu:
 	startZ80
 
 	bsr.w	ProcessDPLC
+	TST.W	(TIMER).W
+		BEQ.W	.STOP
+		SUBQ.W	#1,	(TIMER).W
+	.STOP:
+	MOVE.W	D0,	D1
+		AND.W	#$00F0,	D1
+		ROL.B	#4,	D1
+		ADD.W	#$130,	D1
+		MOVE.W	D1,	(VDPDATA)
+		
+		MOVE.W	D0,	D1
+		AND.W	#$000F,	D1
+		ADD.W	#$130,	D1	
+		MOVE.W	D1,	(VDPDATA)
+	
 ;	tst.w	(Demo_Time_left).w
 ;	beq.w	+	; rts
 ;	subq.w	#1,(Demo_Time_left).w
@@ -1641,6 +1677,7 @@ Pause_SlowMo:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_140E: ShowVDPGraphics: PlaneMapToVRAM:
+TilemapToVRAM:
 PlaneMapToVRAM_H40:
 	lea	(VDP_data_port).l,a6
 	move.l	#vdpCommDelta(planeLoc(64,0,1)),d4	; $800000
@@ -4118,7 +4155,7 @@ Sega_WaitEnd:
 Sega_GotoTitle:
 	clr.w	(SegaScr_PalDone_Flag).w
 	clr.w	(SegaScr_VInt_Subrout).w
-	move.b	#GameModeID_OptionsMenu,(Game_Mode).w;GameModeID_TitleScreen,(Game_Mode).w	; => TitleScreen
+	move.b	#GameModeID_CreditsScreen,(Game_Mode).w;GameModeID_TitleScreen,(Game_Mode).w	; => TitleScreen
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -4841,7 +4878,7 @@ Level_TtlCard:
 +
 	moveq	#PalID_BGND,d0
 	bsr.w	PalLoad_ForFade	; load Sonic's palette line
-	bsr.w	LevelSizeLoad
+	jsr		(LevelSizeLoad).l;bsr.w	LevelSizeLoad
 	jsrto	DeformBgLayer, JmpTo_DeformBgLayer
 	clr.w	(Vscroll_Factor_FG).w
 	move.w	#-224,(Vscroll_Factor_P2_FG).w
@@ -12020,6 +12057,34 @@ MenuScreenTextToRAM:
 ; ===========================================================================
 bigplanemap_art_end	=	$192;6
 heartbox_end	=	bigplanemap_art_end+4+$19
+VRAMWRITE       =	$40000000
+COPYTILEMAP		MACRO	source,loc,width,height
+		lea		(source).l,a1
+		move.l	#$40000000+((loc&$3FFF)<<16)+((loc&$C000)>>14),d0
+		moveq	#width,d1
+		moveq	#height,d2
+		jsr		TilemapToVRAM
+		endm
+;copyTilemap:	macro source,destination,width,height
+;		lea	(source).l,a1
+;		move.l	#$40000000+((destination&$3FFF)<<16)+((destination&$C000)>>14),d0;locVRAM	destination,d0
+;		moveq	#width,d1
+;		moveq	#height,d2
+;		bsr.w	TilemapToVRAM
+;		endm
+TEXTSETUP:	MACRO	LOG,LOC,SND,VRAM
+		COPYTILEMAP		BATTLEMAP,	$8084,	1,	19
+		MOVE.L	#LOG,	TEXTLOG				;	where on screen the text should print
+		MOVE.L	#LOG,	NEWLINE_MEMO		;	memorize where a new line starts
+		MOVE.W	#0,		TEXTPROG			;	memorize how far into a script it's read
+		MOVE.L	#LOC,	TEXTLOC				;	where in ROM the script is read
+		MOVE.W	#0,		TIMER				;	reset timer (makes the dialogue begin later if set other than 0)
+		MOVE.B	#SND,	TEXTSND				;	sound byte
+		MOVE.W	#VRAM,	TXTVRAM				;	VRAM offset
+		ENDM
+WRITEVRAM	MACRO	LOC
+		MOVE.L	#VRAMWRITE+((LOC&$3FFF)<<16)+((LOC&$C000)>>14),	(VDPCTRL)
+		ENDM
 ; loc_8FCC:
 MenuScreen_Options:
 	move.l	#vdpComm(tiles_to_bytes($68),VRAM,WRITE),(VDP_control_port).l
@@ -12040,6 +12105,14 @@ MenuScreen_Options:
 	move.l	#vdpComm(tiles_to_bytes(heartbox_end+2),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_BattleButtons).l,a0
 	bsr.w	NemDec
+;	move.l	#VRAMWRITE,	(VDPCTRL);from here
+;		LEA		TXTART,		A0
+;		LEA		VDPDATA,	A1
+;		WRITEVRAM	$2000
+;		MOVE.W	#(TXTART_END-TXTART)/2-1,		D0
+;	.LOADGFX2:
+;		MOVE.W	(A0)+,	(A1)
+;		DBF		D0,	.LOADGFX2
 	; Load foreground (sans zone icon)
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_DRbhud).l,a0	; 2 bytes per 8x8 tile, compressed
@@ -12073,7 +12146,7 @@ MenuScreen_Options:
 	bsr.w	PalLoad_ForFade
 ;	moveq	#PalID_btlplr,d0
 ;	bsr.w	PalLoad_ForFade
-	move.b	#MusID_Options,d0
+	move.b	#MusID_2PResult,d0;MusID_Options,d0
 	jsrto	PlayMusic, JmpTo_PlayMusic
 	clr.w	(Two_player_mode).w
 	clr.l	(Camera_X_pos).w
@@ -12091,6 +12164,23 @@ MenuScreen_Options:
 	move.b	#6,(EnemyNumeroQuatro+subtype).w
 	move.b	#$DF,(BattleOptsNumeroSes).w
 	move.w	#$AD,(BattleOptsNumeroSes+x_pos).w
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,$A,19),VRAM,WRITE),(VDP_control_port).l
+	move.b	#$90,d0;move.w	(Sound_test_sound).w,d0
+	move.b	d0,(kris_helth_current).w
+	bsr.w	Battle_DrawNumber
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,37,19),VRAM,WRITE),(VDP_control_port).l
+	move.b	#$70,d0;move.w	(Sound_test_sound).w,d0
+	move.b	d0,(ralsei_helth_current).w
+	bsr.w	Battle_DrawNumber
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,25,19),VRAM,WRITE),(VDP_control_port).l
+	move.w	#$0120,d0;move.w	(Sound_test_sound).w,d0
+	move.w	d0,(susie_helth_current).w
+	bsr.w	Battle_DrawNumber
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,23,19),VRAM,WRITE),(VDP_control_port).l
+	move.b	#$01,d0;move.w	(Sound_test_sound).w,d0
+;	move.w	d0,(susie_helth_current).w
+	bsr.w	Battle_DrawNumber
+;	move.b	#$F1,(BattleTxtNumeroHuit).w
 ;	move.b	#2,(IntroSonic+subtype).w
 
 	; Run it for a frame, so that it initialises.
@@ -12102,8 +12192,23 @@ MenuScreen_Options:
 	ori.b	#$40,d0
 	move.w	d0,(VDP_control_port).l
 	bsr.w	Pal_FadeFromBlack
+;	TEXTSETUP	$48080002,TXT_ENCOUNTER,$A2,$100
+; i cant code so more copied mdtravis code incoming
+; constants
+TEXTLOC			=	$FFFF0000	;	long
+TEXTLOG			=	$FFFF0004	;	long
+NEWLINE_MEMO	=	$FFFF0008	;	long
+TEXTPROG		=	$FFFF000C	;	word
+TEXTSND			=	$FFFF000E	;	byte
+MOVENUM			=	$FFFF000F	;	byte
+HP				=	$FFFF0010	;	byte
+BLUEMODE		=	$FFFF0011	;	byte
+TXTVRAM			=	$FFFF0012	;	word
+;no need for hp or blue mode and they probably mess something up if i use them
+VDPCTRL	=	VDP_control_port
 ; loc_9060:
 OptionScreen_Main:
+.loop:
 	move.b	#VintID_Menu,(Vint_routine).w
 	bsr.w	WaitForVint
 	jsr	(RunObjects).l
@@ -12115,19 +12220,84 @@ OptionScreen_Main:
 ;	bsr.w	OptionScreen_Controls
 ;	bsr.w	OptionScreen_DrawSelected
 ;	move	#$2300,sr
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,7,19),VRAM,WRITE),(VDP_control_port).l
+	move.b	(kris_helth_current).w,d0;move.w	(Sound_test_sound).w,d0
+	bsr.w	Battle_DrawNumber;this one will be for kris helth
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,34,19),VRAM,WRITE),(VDP_control_port).l
+	move.b	(ralsei_helth_current).w,d0;move.w	(Sound_test_sound).w,d0
+	bsr.w	Battle_DrawNumber;this one is for talesi helth
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,20,19),VRAM,WRITE),(VDP_control_port).l
+	move.w	(susie_helth_current).w,d0;move.w	(Sound_test_sound).w,d0
+	bsr.w	Battle_DrawNumber;this one is for suusie helth
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,18,19),VRAM,WRITE),(VDP_control_port).l
+	move.b	(susie_helth_current).w,d0;move.w	(Sound_test_sound).w,d0
+	bsr.w	Battle_DrawNumber
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,1,7),VRAM,WRITE),(VDP_control_port).l
+	move.b	(toilet_paper_current).w,d0
+;	cmpi.w	#$100,(toilet_paper_current).w;d0
+;	bne.s	+
+;	
+;+
+	bsr.w	Battle_DrawNumber
 	lea	(Anim_DeltaruneBG).l,a2
-	jsrto	Dynamic_Normal, JmpTo2_Dynamic_Normal
+	jsrto	Dynamic_Normal, JmpTo2_Dynamic_Normal;the code until here happens globally, battles too
 	tst.b	(attack_started).w
-	beq.s	+
+	beq.s	++
 	;sub.b	#1,(Demo_Time_left).w
+	tst.b	(EnemyAttackInitNumeroSepte+id).w
+	bne.s	+
+	move.b	#$E0,(EnemyAttackInitNumeroSepte).w
++
 	tst.w	(Demo_Time_left).w
-	beq.s	+++	; rts
+	beq.w	+++	; rts
 	subq.w	#1,(Demo_Time_left).w
-	bra.s	OptionScreen_Main
+	bra.w	OptionScreen_Main
 +
 	tst.b	(Members_done_selectoptions).w
-	bne.s	+
-	bra.s	OptionScreen_Main
+	bne.w	+
+;	tst.b	TIMER+1;test the second byte of the timer
+;		bne.W	.skipDialogue;if not 0, then skip the dialogue ig
+;		MOVE.L	TEXTLOC,	A0;and from here
+;		ADD.W	TEXTPROG,	A0
+;		CMPI.B	#1,	(A0)
+;		BNE.S	.no_newline
+;		ADD.L	#$1000000,	NEWLINE_MEMO
+;		MOVE.L	NEWLINE_MEMO,	TEXTLOG
+;		ADDI.W	#1,	TEXTPROG
+;		bra.w	.loop
+;	.no_newline:
+;		CMPI.B	#$FF,	(A0)
+;		BNE.S	.noEnd
+;		MOVE.L	#BLANKTXT,	TEXTLOC
+;		MOVE.L	#$48080002,	TEXTLOG
+;		MOVE.L	#$48080002,	NEWLINE_MEMO
+;		MOVE.W	#$0,	TEXTPROG
+;		bra.w	.loop
+;	.noEnd:
+;		MOVE.L	TEXTLOG,	(VDPCTRL)
+;		MOVE.W	TXTVRAM,	D0
+;		ADD.B	(A0)+,	D0
+;		MOVE.W	D0,	($C00000)
+;		add.l	#$20000,TEXTLOG
+;		move.b	#2,	TIMER+1
+;		add.w	#1,	TEXTPROG
+;		cmpi.b	#' ',	D0
+;		beq.s	.skipDialogue
+;		cmpi.b	#'.',	D0	;	TODO: optimize this into a table
+;		beq.s	.extnd
+;		cmpi.b	#',',	D0
+;		beq.s	.extnd
+;		cmpi.b	#'!',	D0
+;		beq.s	.extnd
+;		cmpi.b	#'?',	D0
+;		bne.s	.sound
+;	.extnd:
+;		move.b	#8,	TIMER+1
+;	.sound:
+;		move.b	TEXTSND,	D0
+;		jsr		PlaySound
+;	.skipDialogue:
+	bra.w	OptionScreen_Main
 +
 ;	move.b	(Ctrl_1_Press).w,d0
 ;	or.b	(Ctrl_2_Press).w,d0
@@ -12139,21 +12309,31 @@ OptionScreen_Main:
 	move.b	#0,(Members_done_selectoptions).w
 	move.w	#$AD,(BattleOptsNumeroSes+x_pos).w
 	move.b	#0,(BattleOptsNumeroSes+y_pos).w
+	;move.l	#0,a1;d0
 	lea	(Chunk_Table).l,a1
-	lea	(MapEng_DRbhud).l,a0	; 2 bytes per 8x8 tile, compressed
-	move.w	#make_art_tile(ArtTile_VRAM_Start+$17A,0,0),d0
+	lea	(MapEng_mt).l,a0	; 2 bytes per 8x8 tile, compressed
+	move.w	#make_art_tile(ArtTile_VRAM_Start,0,0),d0
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
-	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
-	moveq	#40-1,d1
-	moveq	#28-1,d2	; 40x28 = whole screen
-	jsrto	PlaneMapToVRAM_H40, JmpTo_PlaneMapToVRAM_H40
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,$F,5),VRAM,WRITE),d0
+	moveq	#9-1,d1 ; Width
+	moveq	#9-1,d2 ; Height
+	jsrto	PlaneMapToVRAM_H40, PlaneMapToVRAM_H40
+;	lea	(Chunk_Table).l,a1
+;	lea	(MapEng_DRbhud).l,a0	; 2 bytes per 8x8 tile, compressed
+;	move.w	#make_art_tile(ArtTile_VRAM_Start+$17A,0,0),d0
+;	bsr.w	EniDec
+;	lea	(Chunk_Table).l,a1
+;	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
+;	moveq	#40-1,d1
+;	moveq	#28-1,d2	; 40x28 = whole screen
+;	jsrto	PlaneMapToVRAM_H40, JmpTo_PlaneMapToVRAM_H40
 	bra.w	OptionScreen_Main
 ;	rts
 ; ===========================================================================
-BatelMenu_MakeBox:
+BatelMenu_MakeBox:;and set up the whole attack part of the battle but the first thing it does is the box sooo
 	move.b	#1,(attack_started).w
-	move.w	#(30*60)-1,(Demo_Time_left).w;30 secs
+	move.w	#(20*60)-1,(Demo_Time_left).w;(30*60)-1,(Demo_Time_left).w;30 secs
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_battleBox).l,a0	; 2 bytes per 8x8 tile, compressed
 	move.w	#make_art_tile(ArtTile_VRAM_Start+$193,0,0),d0
@@ -12165,12 +12345,42 @@ BatelMenu_MakeBox:
 	moveq	#9-1,d2 ; Height
 	jsrto	PlaneMapToVRAM_H40, PlaneMapToVRAM_H40
 	move.b	#$DE,(HeartNumeroCinco).w
+	move.b	#$E0,(EnemyAttackInitNumeroSepte).w
 ;	lea	(Chunk_Table).l,a1
 ;	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
 ;	moveq	#9-1,d1
 ;	moveq	#9-1,d2	; 40x28 = whole screen
 ;	jsrto	PlaneMapToVRAM_H40, JmpTo_PlaneMapToVRAM_H40	; display patterns
 	bra.w	OptionScreen_Main
+;LevelSelect_DrawSoundNumber but modified
+Battle_DrawNumber:
+;	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,34,18),VRAM,WRITE),(VDP_control_port).l
+;	move.b	(DR_battle_option).w,d0;move.w	(Sound_test_sound).w,d0
+	move.b	d0,d2
+	lsr.b	#4,d0
+	bsr.s	+
+	move.b	d2,d0
+
++
+	andi.w	#$F,d0
+	cmpi.b	#$A,d0
+	blo.s	+
+	addi.b	#4,d0
+
++
+	addi.b	#$10,d0
+	add.w	#palette_line_1,d0;d3,d0
+	move.w	d0,(a6)
+	rts
+; im sorry i just can't code
+BLANKTXT:
+	DC.B	$FF
+TXT_ENCOUNTER:
+	DC.B	'Rudinn drew near!'
+	DC.B	$FF						;
+	even
+BATTLEMAP:	binclude		"MAPpings/misc/BATTLE.MAP"
+;	even
 ; loc_909A:
 OptionScreen_Select:
 	move.b	(Options_menu_box).w,d0
@@ -12470,7 +12680,7 @@ MenuScreen_LevelSelect:
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_LevSel).l,a0	; 2 bytes per 8x8 tile, compressed
 	move.w	#make_art_tile(ArtTile_VRAM_Start,0,0),d0
-	bsr.w	EniDec
+	jsr	EniDec;bsr.w	EniDec
 
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
@@ -12486,7 +12696,7 @@ MenuScreen_LevelSelect:
 	lea	(Chunk_Table+planeLoc(40,0,28)).l,a1
 	lea	(MapEng_LevSelIcon).l,a0
 	move.w	#make_art_tile(ArtTile_ArtNem_LevelSelectPics,0,0),d0
-	bsr.w	EniDec
+	jsr	EniDec
 
 	bsr.w	LevelSelect_DrawIcon
 
@@ -13225,7 +13435,7 @@ EndingSequence:
 EndgameCredits:
 	tst.b	(Credits_Trigger).w
 	beq.w	.return
-	bsr.w	Pal_FadeToBlack
+	jsr	Pal_FadeToBlack
 	lea	(VDP_control_port).l,a6
 	move.w	#$8004,(a6)		; H-INT disabled
 	move.w	#$8200|(VRAM_EndSeq_Plane_A_Name_Table/$400),(a6)	; PNT A base: $C000
@@ -13278,7 +13488,7 @@ EndgameCredits:
 -
 	jsrto	ClearScreen, JmpTo_ClearScreen
 	bsr.w	ShowCreditsScreen
-	bsr.w	Pal_FadeFromBlack
+	jsr	Pal_FadeFromBlack
 
 	; Here's how to calculate new duration values for the below instructions.
 	; Each slide of the credits is displayed for $18E frames at 60 FPS, or $144 frames at 50 FPS.
@@ -13300,14 +13510,14 @@ EndgameCredits:
 	bsr.w	WaitForVint
 	dbf	d0,-
 
-	bsr.w	Pal_FadeToBlack
+	jsr	Pal_FadeToBlack
 	lea	(off_B2CA).l,a1
 	addq.w	#1,(CreditsScreenIndex).w
 	move.w	(CreditsScreenIndex).w,d0
 	lsl.w	#2,d0
 	move.l	(a1,d0.w),d0
 	bpl.s	--
-	bsr.w	Pal_FadeToBlack
+	jsr	Pal_FadeToBlack
 	jsrto	ClearScreen, JmpTo_ClearScreen
 	move.l	#vdpComm($0000,VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_EndingTitle).l,a0
@@ -85512,34 +85722,115 @@ JmpTo20_AllocateObject ; JmpTo
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; loc_3F554:
-TouchResponse:
-	nop
-	jsrto	Touch_Rings, JmpTo_Touch_Rings
+TouchResponse:;that's right im buying soup at the clothes store cry about it
+	moveq	#0,d4;code stolen from mdtravis again im stupid :)
+	move.b	x_radius(a0),d4
+	subq.b	#3,d4
+	MOVE.W	x_pos(A0),D2
+		SUB.W	D4,D2
+		ADD.W	D4,D4
+		
+		MOVEQ	#0,	D5
+		MOVE.B	y_radius(A0),D5
+		SUBQ.B	#3,	D5
+		MOVE.W	y_pixel(a0),d3;y_pos(A0),D3
+		SUB.W	D5,D3
+		ADD.W	D5,D5
+		
+		LEA		(IntroSonic).w,a1;(HeartNumeroCinco).w,a1;(OBJSLOT01).W,A1;gonna have to chane this probably
+		MOVE.W	#96-1,D6
+		
+	.LOOP:
+		TST.B	render_flags(A1)
+		BPL.S	.NEXTOBJ
+		MOVE.B	collision_flags(A1),D0
+		BNE.S	.HASCOLLISION
+		
+	.NEXTOBJ:
+		LEA		object_size(A1),A1
+		DBF		D6,.LOOP
+		MOVEQ	#0,D0
+		RTS
+		
+	.HASCOLLISION:
+		ANDI.W	#$3F,D0
+		ADD.W	D0,D0
+		LEA		x_radius(A1),A2
+		MOVEQ	#0,	D1
+		MOVE.B	(A2)+,D1
+		MOVE.W	x_pos(A1),D0
+		SUB.W	D1,D0
+		SUB.W	D2,D0
+		BCC.S	.OUT_X
+		ADD.W	D1,D1
+		ADD.W	D1,D0
+		BCS.S	.IN_X
+		BRA.S	.NEXTOBJ
+		
+	.OUT_X:
+		CMP.W	D4,	D0
+		BHI.S	.NEXTOBJ
+	.IN_X:
+		MOVEQ	#0,	D1
+		MOVE.B	(A2)+,D1
+		MOVE.W	y_pixel(a1),d0;y_pos(A1),D0
+		SUB.W	D1,D0
+		SUB.W	D3,D0
+		BCC.S	.OUT_Y
+		ADD.W	D1,D1
+		ADD.W	D0,D1
+		BCS.S	.HURT	;	inside both X and Y
+		BRA.W	.NEXTOBJ
+		
+	.OUT_Y:
+		CMP.W	D5,D0
+		BHI.W	.NEXTOBJ
+		
+	.HURT:
+;		MOVE.B	collision_flags(A1),D0
+;		BTST	#7,	D0
+;		BEQ.S	.CONT
+;		TST.B	SOUL.MOVE(A0)
+;		BEQ.S	.DONT
+;	.CONT:
+;		AND.B	#%01111111,	D0
+;		MOVE.B	HP,		D1
+;		and		#0,		CCR
+;		SBCD	D0,		D1
+;		move.b	D1,		HP
+;		move.b	#30,SOUL.INV(A0)
+		move.b	#$A6,	D0
+		jmp		PlaySound
+		
+	.DONT:
+		RTS
+;	nop
+;	jsrto	Touch_Rings, JmpTo_Touch_Rings
 	; Bumpers in CNZ
-	cmpi.b	#casino_night_zone,(Current_Zone).w
-	bne.s	+
-	jsrto	Check_CNZ_bumpers, JmpTo_Check_CNZ_bumpers
-+
-	tst.b	(Current_Boss_ID).w
-	bne.w	Touch_Boss
-	move.w	x_pos(a0),d2 ; load Sonic's position into d2,d3
-	move.w	y_pos(a0),d3
-	subi_.w	#8,d2
-	moveq	#0,d5
-	move.b	y_radius(a0),d5
-	subq.b	#3,d5
-	sub.w	d5,d3
-    if fixBugs
-	cmpi.b	#AniIDSonAni_Duck,anim(a0)	; is Sonic ducking?
-    else
+;	cmpi.b	#casino_night_zone,(Current_Zone).w
+;	bne.s	+
+;	jsrto	Check_CNZ_bumpers, JmpTo_Check_CNZ_bumpers
+;+
+;	tst.b	(Current_Boss_ID).w
+;	bne.w	Touch_Boss
+;	move.w	x_pos(a0),d2 ; load Sonic's position into d2,d3
+;	move.w	y_pos(a0),d3
+;	subi_.w	#8,d2
+;	moveq	#0,d5
+;	move.b	y_radius(a0),d5
+;	subq.b	#3,d5
+;	sub.w	d5,d3
+;    if fixBugs
+;	cmpi.b	#AniIDSonAni_Duck,anim(a0)	; is Sonic ducking?
+ ;   else
 	; This logic only works for Sonic, not Tails. Also, it only applies
 	; to the last frame of his ducking animation. This is a leftover from
 	; Sonic 1, where Sonic's ducking animation only had one frame.
-	cmpi.b	#$4D,mapping_frame(a0)	; is Sonic ducking?
-    endif
-	bne.s	Touch_NoDuck			; if not, branch
-	addi.w	#$C,d3
-	moveq	#$A,d5
+;	cmpi.b	#$4D,mapping_frame(a0)	; is Sonic ducking?
+ ;   endif
+;	bne.s	Touch_NoDuck			; if not, branch
+;	addi.w	#$C,d3
+;	moveq	#$A,d5
 ; loc_3F592:
 Touch_NoDuck:
 	move.w	#$10,d4
@@ -85944,23 +86235,23 @@ Touch_Hurt:
 ; loc_3F878: HurtSonic:
 HurtCharacter:
 	move.w	(Ring_count).w,d0
-	cmpa.w	#MainCharacter,a0
-	beq.s	loc_3F88C
-	tst.w	(Two_player_mode).w
-	beq.s	Hurt_Sidekick
-	move.w	(Ring_count_2P).w,d0
+;	cmpa.w	#MainCharacter,a0
+;	beq.s	loc_3F88C
+;	tst.w	(Two_player_mode).w
+;	beq.s	Hurt_Sidekick
+;	move.w	(Ring_count_2P).w,d0
 
 loc_3F88C:
-	btst	#status_sec_hasShield,status_secondary(a0)
-	bne.s	Hurt_Shield
-	tst.w	d0
-	beq.w	KillCharacter
-	jsr	(AllocateObject).l
-	bne.s	Hurt_Shield
-	_move.b	#ObjID_LostRings,id(a1) ; load obj
-	move.w	x_pos(a0),x_pos(a1)
-	move.w	y_pos(a0),y_pos(a1)
-	move.w	a0,parent(a1)
+;	btst	#status_sec_hasShield,status_secondary(a0)
+;	bne.s	Hurt_Shield
+;	tst.w	d0
+;	beq.w	KillCharacter
+;	jsr	(AllocateObject).l
+;	bne.s	Hurt_Shield
+;	_move.b	#ObjID_LostRings,id(a1) ; load obj
+;	move.w	x_pos(a0),x_pos(a1)
+;	move.w	y_pos(a0),y_pos(a1)
+;	move.w	a0,parent(a1)
 
 ; loc_3F8B8:
 Hurt_Shield:
@@ -85968,9 +86259,10 @@ Hurt_Shield:
 
 ; loc_3F8BE:
 Hurt_Sidekick:
-	move.b	#4,routine(a0)
-	jsrto	Sonic_ResetOnFloor_Part2, JmpTo_Sonic_ResetOnFloor_Part2
-	bset	#1,status(a0)
+;	rts
+;	move.b	#4,routine(a0)
+;	jsrto	Sonic_ResetOnFloor_Part2, JmpTo_Sonic_ResetOnFloor_Part2
+;	bset	#1,status(a0)
 	move.w	#-$400,y_vel(a0) ; make Sonic bounce away from the object
 	move.w	#-$200,x_vel(a0)
 	btst	#6,status(a0)	; underwater?
@@ -92066,9 +92358,12 @@ SndDAC_End
 ; loc_F0000:
 MusicPoint1:	startBank
 MusPtr_Continue:	rom_ptr_z80	Mus_Continue
+MusPtr_2PResult:	rom_ptr_z80	Mus_2PResult
 
 
 Mus_Continue:   BINCLUDE	"sound/music/compressed/9C - Continue.sax"
+	even
+Mus_2PResult:	include	"sound/music/deltarune real.asm"
 
 	finishBank
 
@@ -92182,7 +92477,7 @@ MusPtr_SCZ:		rom_ptr_z80	Mus_SCZ
 MusPtr_OOZ:		rom_ptr_z80	Mus_OOZ
 MusPtr_WFZ:		rom_ptr_z80	Mus_WFZ
 MusPtr_EHZ_2P:		rom_ptr_z80	Mus_EHZ_2P
-MusPtr_2PResult:	rom_ptr_z80	Mus_2PResult
+;MusPtr_2PResult:	rom_ptr_z80	Mus_2PResult
 MusPtr_SuperSonic:	rom_ptr_z80	Mus_SuperSonic
 MusPtr_HTZ:		rom_ptr_z80	Mus_HTZ
 MusPtr_ExtraLife:	rom_ptr_z80	Mus_ExtraLife
@@ -92217,7 +92512,7 @@ Mus_SCZ:	BINCLUDE	"sound/music/compressed/8D - SCZ.sax"
 Mus_OOZ:	BINCLUDE	"sound/music/compressed/84 - OOZ.sax"
 Mus_WFZ:	BINCLUDE	"sound/music/compressed/8F - WFZ.sax"
 Mus_EHZ_2P:	BINCLUDE	"sound/music/compressed/8C - EHZ 2P.sax"
-Mus_2PResult:	BINCLUDE	"sound/music/compressed/81 - 2 Player Menu.sax"
+;Mus_2PResult:	include	"sound/music/deltarune real.asm";BINCLUDE	"sound/music/compressed/81 - 2 Player Menu.sax"
 Mus_SuperSonic:	BINCLUDE	"sound/music/compressed/96 - Super Sonic.sax"
 Mus_HTZ:	BINCLUDE	"sound/music/compressed/86 - HTZ.sax"
 Mus_Title:	BINCLUDE	"sound/music/compressed/99 - Title Screen.sax"
@@ -92284,7 +92579,7 @@ SndPtr_EnterGiantRing:	rom_ptr_z80	Sound43	; special stage ring flash (mostly un
 SndPtr_BossExplosion:	rom_ptr_z80	Sound44	; thunk
 SndPtr_TallyEnd:	rom_ptr_z80	Sound45	; cha-ching
 SndPtr_RingSpill:	rom_ptr_z80	Sound46	; losing rings
-			rom_ptr_z80	Sound47	; chain pull chink-chink (unused)
+SndPtr_selectthing:			rom_ptr_z80	Sound47	; chain pull chink-chink (unused)
 SndPtr_Flamethrower:	rom_ptr_z80	Sound48	; flamethrower
 SndPtr_Bonus:		rom_ptr_z80	Sound49	; bonus pwoieeew (mostly unused)
 SndPtr_SpecStageEntry:	rom_ptr_z80	Sound4A	; special stage entry
@@ -92369,9 +92664,9 @@ Sound43:	include "sound/sfx/C3 - Enter Giant Ring (Unused).asm"
 Sound44:	include "sound/sfx/C4 - Boss Explosion.asm"
 Sound45:	include "sound/sfx/C5 - Tally End.asm"
 Sound46:	include "sound/sfx/C6 - Ring Spill.asm"
-Sound47:	include "sound/sfx/C7 - Chain Rise (Unused).asm"
+Sound47:	include "sound/sfx/C7 - DR select.asm";Chain Rise (Unused).asm"
 Sound48:	include "sound/sfx/C8 - Flamethrower.asm"
-Sound49:	include "sound/sfx/C9 - Hidden Bonus (Unused).asm"
+Sound49:	include "sound/sfx/C9 - DR beep.asm";Hidden Bonus (Unused).asm"
 Sound4A:	include "sound/sfx/CA - Special Stage Entry.asm"
 Sound4B:	include "sound/sfx/CB - Slow Smash.asm"
 Sound4C:	include "sound/sfx/CC - Spring.asm"
@@ -92487,6 +92782,143 @@ ArtNem_BattleButtons:
 	binclude	"art/nemesis/btnDRbtl.nem"
 	even
 	include	"_incObj/DF pressable buttons in DR battle.asm"
+	include	"_incObj/F0 enemy bullets.asm"
+CreditsScreen:
+;	move.b	#MusID_Stop,d0
+;	bsr.w	PlayMusic ; stop music
+	jsr	ClearPLC;bsr.w	ClearPLC
+	jsr		Pal_FadeToBlack;bsr.w	Pal_FadeToBlack
+
+;	clearRAM Misc_Variables,Misc_Variables_End
+
+;	clearRAM Object_RAM,Object_RAM_End ; fill object RAM with 0
+
+	lea	(VDP_control_port).l,a6
+	move.w	#$8004,(a6)		; H-INT disabled
+	move.w	#$8200|(VRAM_Menu_Plane_A_Name_Table/$400),(a6)		; PNT A base: $C000
+	move.w	#$8400|(VRAM_Menu_Plane_B_Name_Table/$2000),(a6)	; PNT B base: $E000
+	move.w	#$8200|(VRAM_Menu_Plane_A_Name_Table/$400),(a6)		; PNT A base: $C000
+	move.w	#$8700,(a6)		; Background palette/color: 0/0
+	move.w	#$8C81,(a6)		; H res 40 cells, no interlace, S/H disabled
+	move.w	#$9001,(a6)		; Scroll table size: 64x32
+;	clr.b	(Water_fullscreen_flag).w
+;	clr.w	(Two_player_mode).w
+	move	#$2700,sr
+	move.w	(VDP_Reg1_val).w,d0
+	andi.b	#$BF,d0
+	move.w	d0,(VDP_control_port).l
+	jsr	ClearScreen;bsr.w	ClearScreen
+	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtNem_FontStuff),VRAM,WRITE),(VDP_control_port).l
+	lea	(ArtNem_FontStuff).l,a0
+	jsr	NemDec;bsr.w	NemDec
+	dmaFillVRAM 0,VRAM_SegaScr_Plane_A_Name_Table,VRAM_SegaScr_Plane_Table_Size ; clear Plane A pattern name table
+
+;	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtNem_Sega_Logo),VRAM,WRITE),(VDP_control_port).l
+;	lea	(ArtNem_SEGA).l,a0
+;	bsr.w	NemDec
+
+;	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtNem_Trails),VRAM,WRITE),(VDP_control_port).l
+;	lea	(ArtNem_IntroTrails).l,a0
+;	bsr.w	NemDec
+
+	; This gets overwritten by the upscaled Sonic sprite. This may have
+	; been used to test the Sega screen before the sprite upscaling logic
+	; was added.
+;	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtUnc_Giant_Sonic),VRAM,WRITE),(VDP_control_port).l
+;	lea	(ArtNem_SilverSonic).l,a0
+;	bsr.w	NemDec
+
+	; Load foreground (sans zone icon)
+	lea	(Chunk_Table).l,a1
+	lea	(MapEng_CreditsScreen).l,a0	; 2 bytes per 8x8 tile, compressed
+	move.w	#make_art_tile(ArtTile_VRAM_Start,0,0),d0
+	jsr	EniDec;bsr.w	EniDec
+
+	lea	(Chunk_Table).l,a1
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
+	moveq	#40-1,d1
+	moveq	#28-1,d2	; 40x28 = whole screen
+	jsrto	PlaneMapToVRAM_H40, JmpTo_PlaneMapToVRAM_H40	; display patterns
+;	lea	(Chunk_Table).l,a1
+;	lea	(MapEng_SEGA).l,a0
+;	move.w	#make_art_tile(ArtTile_VRAM_Start,0,0),d0
+;	jsr	EniDec;bsr.w	EniDec
+;
+;	lea	(Chunk_Table).l,a1
+;	move.l	#vdpComm(VRAM_SegaScr_Plane_B_Name_Table,VRAM,WRITE),d0
+;	moveq	#40-1,d1	; 40 cells wide
+;	moveq	#28-1,d2	; 28 cells tall
+;	jsr		PlaneMapToVRAM_H40;80_Sega
+
+;	tst.b	(Graphics_Flags).w ; are we on a Japanese Mega Drive?
+;	bmi.s	SegaScreen_Contin ; if not, branch
+
+	; load an extra sprite to hide the TM (trademark) symbol on the SEGA screen
+;	lea	(SegaHideTM).w,a1
+;	move.b	#ObjID_SegaHideTM,id(a1)	; load objB1 at $FFFFB080
+;	move.b	#$4E,subtype(a1) ; <== ObjB1_SubObjData
+; loc_38CE:
+;SegaScreen_Contin:
+	moveq	#PalID_Menu,d0
+	jsr	PalLoad_ForFade;Now;bsr.w	PalLoad_Now
+;	move.w	#-$A,(PalCycle_Frame).w
+;	move.w	#0,(PalCycle_Timer).w
+;	move.w	#0,(SegaScr_VInt_Subrout).w
+;	move.w	#0,(SegaScr_PalDone_Flag).w
+;	lea	(SegaScreenObject).w,a1
+;	move.b	#ObjID_SonicOnSegaScr,id(a1) ; load objB0 (sega screen?) at $FFFFB040
+;	move.b	#$4C,subtype(a1) ; <== ObjB0_SubObjData
+;	move.w	#4*60,(Demo_Time_left).w	; 4 seconds
+	move.w	(VDP_Reg1_val).w,d0
+	ori.b	#$40,d0
+	move.w	d0,(VDP_control_port).l
+; loc_390E:
+;Sega_WaitPalette:
+;	move.b	#VintID_SEGA,(Vint_routine).w
+;	bsr.w	WaitForVint
+;	jsrto	RunObjects, JmpTo_RunObjects
+;	jsr	(BuildSprites).l
+;	tst.b	(SegaScr_PalDone_Flag).w
+;	beq.s	Sega_WaitPalette
+;    if ~~fixBugs
+	; This is a leftover from Sonic 1: ObjB0 plays the Sega sound now.
+	; Normally, you'll only hear one Sega sound, but the game actually
+	; tries to play it twice. The only reason it doesn't is because the
+	; sound queue only has room for one sound per frame. Some custom
+	; sound drivers don't have this limitation, however, and the sound
+	; will indeed play twice in those.
+;	move.b	#SndID_SegaSound,d0
+;	bsr.w	PlaySound	; play "SEGA" sound
+ ;   endif
+;	move.b	#VintID_Menu,(Vint_routine).w
+;	jsr		WaitForVint;bsr.w	WaitForVint
+	move.w	#3*60,(Demo_Time_left).w	; 3 seconds
+	jsr	Pal_FadeFromBlack
+; loc_3940:
+.Sega_WaitEnd:
+	move.b	#VintID_Menu,(Vint_routine).w
+;	jsr		WaitForVint;bsr.w	WaitForVint
+;	tst.w	(Demo_Time_left).w
+;	beq.s	.Sega_GotoTitle
+;	bra.s	.Sega_WaitEnd
+	move.b	(Ctrl_1_Press).w,d0	; is Start button pressed?
+	or.b	(Ctrl_2_Press).w,d0	; (either player)
+	andi.b	#button_start_mask,d0
+	beq.s	.Sega_WaitEnd		; if not, branch
+; loc_395E:
+.Sega_GotoTitle:
+;	clr.w	(SegaScr_PalDone_Flag).w
+;	clr.w	(SegaScr_VInt_Subrout).w
+	move.b	#GameModeID_OptionsMenu,(Game_Mode).w;GameModeID_TitleScreen,(Game_Mode).w	; => TitleScreen
+	rts
+MapEng_CreditsScreen:
+	binclude	"mappings/misc/credits screen.eni"
+	even
+MapEng_mt:
+	binclude	"mappings/misc/empty9x9.eni"
+	even
+TXTART:	binclude		"ART/uncompressed/FONT.UNC"
+	TXTART_END:
 ; end of 'ROM'
 	if padToPowerOfTwo && (*)&(*-1)
 		cnop	-1,2<<lastbit(*-1)
