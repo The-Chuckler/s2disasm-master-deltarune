@@ -62,7 +62,7 @@ ObjDF:
 	tst.b	y_pos(a0)
 	bne.s	+
 	add.w	#$70,x_pos(a0)
-	move.b	(DR_battle_option).w,subtype(a0);().w; you'll see why in a sec
+	move.b	(DR_battle_option).w,(AllBattleOpts).w;subtype(a0);().w; you'll see why in a sec
 	move.b	#1,y_pos(a0);this is actually not used in this object which means i can use it as a temporary ram adress. Yippee!!!
 	move.b	#0,(DR_battle_option).w
 ;+
@@ -73,10 +73,13 @@ ObjDF:
 ;	move.b	#1,(Members_done_selectoptions).w
 	move.b	#2,y_pos(a0)
 	add.w	#$69,x_pos(a0);nice
+	move.b	(DR_battle_option).w,(AllBattleOpts).w
 	move.b	#0,(DR_battle_option).w
 ;	move.b	(DR_battle_option).w,subtype(a0)
 	jmp		DisplaySprite
 +
+	move.b	(DR_battle_option).w,(AllBattleOpts).w
+	move.b	#0,(DR_battle_option).w
 	move.b	#1,(Members_done_selectoptions).w
 	rts
 ;.Plyer_Exit:

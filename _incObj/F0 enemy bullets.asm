@@ -21,7 +21,7 @@ ObjF0:
 		move.l	#Map_RudinnBattle,mappings(a0)
 		move.b	#4,mapping_frame(a0)
 		move.w	#$6000+heartbox_end+$1E,art_tile(a0);$197+1,art_tile(a0)
-		MOVE.B	#4,			render_flags(A0)
+;		MOVE.B	#4,			render_flags(A0)
 ;		MOVE.B	#2,			OBJ.PRIORITY(A0)
 		MOVE.B	#4,			collision_flags(A0)
 ;		moveq	#0,d1

@@ -1148,10 +1148,10 @@ Vint_Menu:
 		ADD.W	#$130,	D1	
 		MOVE.W	D1,	(VDPDATA)
 	
-;	tst.w	(Demo_Time_left).w
-;	beq.w	+	; rts
-;	subq.w	#1,(Demo_Time_left).w
-;+
+	tst.b	(HeartNumeroCinco+SOUL.INV).w;(Demo_Time_left).w
+	beq.s	+	; rts
+	subq.b	#1,(HeartNumeroCinco+SOUL.INV).w;(Demo_Time_left).w
++
 	rts
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
@@ -12163,7 +12163,7 @@ MenuScreen_Options:
 	move.b	#$DD,(EnemyNumeroQuatro).w
 	move.b	#6,(EnemyNumeroQuatro+subtype).w
 	move.b	#$DF,(BattleOptsNumeroSes).w
-	move.w	#$AD,(BattleOptsNumeroSes+x_pos).w
+	move.w	#$AD,(BattleOptsNumeroSes+x_pos).w;great health display
 	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,$A,19),VRAM,WRITE),(VDP_control_port).l
 	move.b	#$90,d0;move.w	(Sound_test_sound).w,d0
 	move.b	d0,(kris_helth_current).w
@@ -12180,6 +12180,7 @@ MenuScreen_Options:
 	move.b	#$01,d0;move.w	(Sound_test_sound).w,d0
 ;	move.w	d0,(susie_helth_current).w
 	bsr.w	Battle_DrawNumber
+	
 ;	move.b	#$F1,(BattleTxtNumeroHuit).w
 ;	move.b	#2,(IntroSonic+subtype).w
 
@@ -12238,6 +12239,9 @@ OptionScreen_Main:
 ;	bne.s	+
 ;	
 ;+
+	bsr.w	Battle_DrawNumber
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLoc(64,1,10),VRAM,WRITE),(VDP_control_port).l
+	move.b	(AllBattleOpts).w,d0;move.w	(Sound_test_sound).w,d0
 	bsr.w	Battle_DrawNumber
 	lea	(Anim_DeltaruneBG).l,a2
 	jsrto	Dynamic_Normal, JmpTo2_Dynamic_Normal;the code until here happens globally, battles too
@@ -85737,7 +85741,7 @@ TouchResponse:;that's right im buying soup at the clothes store cry about it
 		SUB.W	D5,D3
 		ADD.W	D5,D5
 		
-		LEA		(IntroSonic).w,a1;(HeartNumeroCinco).w,a1;(OBJSLOT01).W,A1;gonna have to chane this probably
+		LEA		(EnemyAttackInitNumeroSepte).w,a1;IntroSonic).w,a1;(HeartNumeroCinco).w,a1;(OBJSLOT01).W,A1;gonna have to chane this probably
 		MOVE.W	#96-1,D6
 		
 	.LOOP:
@@ -85787,19 +85791,20 @@ TouchResponse:;that's right im buying soup at the clothes store cry about it
 		BHI.W	.NEXTOBJ
 		
 	.HURT:
-;		MOVE.B	collision_flags(A1),D0
-;		BTST	#7,	D0
-;		BEQ.S	.CONT
-;		TST.B	SOUL.MOVE(A0)
-;		BEQ.S	.DONT
-;	.CONT:
+		MOVE.B	collision_flags(A1),D0
+		BTST	#7,	D0
+		BEQ.S	.CONT
+		TST.B	SOUL.MOVE(A0)
+		BEQ.S	.DONT
+	.CONT:
+	sub.b	#$10,(kris_helth_current).w
 ;		AND.B	#%01111111,	D0
 ;		MOVE.B	HP,		D1
 ;		and		#0,		CCR
 ;		SBCD	D0,		D1
 ;		move.b	D1,		HP
-;		move.b	#30,SOUL.INV(A0)
-		move.b	#$A6,	D0
+		move.b	#$39,SOUL.INV(A0);30,SOUL.INV(A0); now i have to add a timer to decrease this in the VINT CODE yaaaaaaaaaaaaaaaaay
+		move.b	#$A9,	D0
 		jmp		PlaySound
 		
 	.DONT:

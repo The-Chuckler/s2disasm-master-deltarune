@@ -2,8 +2,8 @@ ObjDE:
 		moveq	#0,d0
 		move.b	routine(a0),d0
 		move.w	.Plyers_Index(pc,d0.w),d1
-		jsr	.Plyers_Index(pc,d1.w)
-		jmp		DisplaySprite;bra.w	DisplaySprite
+		jmp	.Plyers_Index(pc,d1.w)
+;		jmp		DisplaySprite;bra.w	DisplaySprite
 ; ===========================================================================
 .Plyers_Index:	dc.w .Plyer_Main-.Plyers_Index
 		dc.w .Plyer_PrsStart-.Plyers_Index
@@ -65,7 +65,18 @@ ObjDE:
 		bge.s	.allgood
 		move.w	#$F6+$8,x_pos(A0)
 	.allgood:
-	jsr	(TouchResponse).l;ill deal with collision later
+	tst.b	SOUL.INV(a0)
+	bne.s	.TestInv
+	jsr	(TouchResponse).l
+.TestInv:
+	btst	#1, SOUL.INV(A0)
+		bne.s	.noDisplay
+;	jsr	(TouchResponse).l;ill deal with collision later
+;	btst	#1, SOUL.INV(A0)
+;		bne.s	.noDisplay
+		JMP		DisplaySprite;_OBJECTDISPLAY
+	.noDisplay:
+		rts
 ;		jsr		().l;JSR		_OBJECTCOLLIDE
 ;		btst	#1, SOUL.INV(A0)
 ;		bne.s	@noDisplay

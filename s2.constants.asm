@@ -1142,6 +1142,8 @@ Verti_block_crossed_flag_BG:	ds.b	1	; toggles between 0 and $10 when background 
 Horiz_block_crossed_flag_BG2:	ds.b	1	; used in CPZ
 				ds.b	1	; $FFFFEE45 ; seems unused
 Horiz_block_crossed_flag_BG3:	ds.b	1
+AllBattleOpts:;only 3 of the 4 bits used; one for each character's menu choice
+;	ds.l	1
 				ds.b	1	; $FFFFEE47 ; seems unused
 Block_Crossed_Flags_End:
 
@@ -1251,6 +1253,7 @@ Camera_BG_X_offset:		ds.w	1	; Used to control background scrolling in X in WFZ e
 Camera_BG_Y_offset:		ds.w	1	; Used to control background scrolling in Y in WFZ ending and HTZ screen shake
 HTZ_Terrain_Delay:		ds.w	1	; During HTZ screen shake, this is a delay between rising and sinking terrain during which there is no shaking
 HTZ_Terrain_Direction:		ds.b	1	; During HTZ screen shake, 0 if terrain/lava is rising, 1 if lowering
+SOUL.INV:;im not renaming it
 		ds.b	1
 TIMER:
 				ds.w	1;2;3	; $FFFFEEE9-$FFFFEEEB ; seems unused
@@ -1347,7 +1350,9 @@ PalCycle_Frame_CNZ:		ds.w	1
 PalCycle_Frame2:		ds.w	1
 PalCycle_Frame3:		ds.w	1
 PalCycle_Frame2_CNZ:		ds.w	1
-				ds.b	4	; $FFFFF658-$FFFFF65B ; seems unused
+SOUL.MOVE:;pretty cool huh
+				ds.b	1;4	; $FFFFF658-$FFFFF65B ; seems unused
+				ds.b	3
 Palette_frame:			ds.w	1
 Palette_timer:			ds.b	1	; was "Palette_frame_count"
 Super_Sonic_palette:		ds.b	1
